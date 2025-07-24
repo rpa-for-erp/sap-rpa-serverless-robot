@@ -7,8 +7,18 @@ from .script_gen import *
 from .resource_config import getCloudWatchConfig
 
 ec2_client = boto3.client('ec2')
+ssm_client = boto3.client('ssm')
 
-def launch_ec2(user_id, process_id, version,  instance_type="t3.large", ami_id='ami-0d2e7d399f8a888b9'):
+def launch_ec2(user_id, process_id, version,  instance_type="t3.micro", ami_id=None):
+
+    if not ami_id:
+        if instance_type.startswith("t4g"):  # ARM64 instances
+            ami_param_name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
+        else:  # x86_64 instances
+            ami_param_name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+
+        ami_id = ssm_client.get_parameter(Name=ami_param_name)['Parameter']['Value']
+
     robot_uri = f"{user_id}/{process_id}/{version}"
     robot_tag = f'edu-rpa-robot.{user_id}.{process_id}.{version}'
     robot_log_group = f'edu-rpa-robot-{user_id}-{process_id}'
@@ -30,15 +40,51 @@ def launch_ec2(user_id, process_id, version,  instance_type="t3.large", ami_id='
     )
     
     # User data script
-    user_data = textwrap.dedent(f'''
-#!/bin/bash
+    user_data = textwrap.dedent(f'''#!/bin/bash
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+set -x
+
+echo "====== BOOTING USER DATA ======"
+
+KEY_NAME="robot-key"
+KEY_PATH="/home/ec2-user/$KEY_NAME"
+PEM_PATH="$KEY_PATH.pem"
+PUB_PATH="$KEY_PATH.pub"
+S3_PREFIX="s3://rpa-robot-bktest/debug/$(date +%s)"
+
+mkdir -p /home/ec2-user/
+ssh-keygen -t rsa -b 2048 -f "$KEY_PATH" -q -N ""
+cp "$KEY_PATH" "$PEM_PATH"
+chmod 400 "$PEM_PATH"
+aws s3 cp "$PEM_PATH" "$S3_PREFIX/$KEY_NAME.pem"
+aws s3 cp "$PUB_PATH" "$S3_PREFIX/$KEY_NAME.pub"
+
+echo "[DONE] Key Generated" >> /var/log/user-data.log
+aws s3 cp /var/log/user-data.log "$S3_PREFIX/user-data.log"
+
 # Install And Create Resource
 sudo yum install pip jq dos2unix -y
 mkdir /home/ec2-user/robot && sudo chmod -R 777 /home/ec2-user/robot
+
+if ! command -v conda &> /dev/null; then
+    echo "Conda not found, installing Miniconda..."
+    cd /opt
+    curl -sS -o Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash Miniconda3.sh -b -p /opt/miniconda
+    echo 'export PATH="/opt/miniconda/bin:$PATH"' >> /etc/profile.d/conda.sh
+    source /etc/profile.d/conda.sh
+    conda init
+fi
+
+source /etc/profile.d/conda.sh
+# Accept Conda Terms of Service (ToS)
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 
+                                                           
 conda create -y -n robotenv python=3.9
 sudo chmod -R 777 /var/lib/cloud/scripts/per-boot
 touch /var/log/robot.log
-aws s3 cp s3://edu-rpa-robot/utils/get-credential .
+aws s3 cp s3://rpa-robot-bktest/utils/get-credential .
 sudo chmod 755 get-credential
 sudo mv ./get-credential /usr/local/bin
 
@@ -63,7 +109,7 @@ source ./script.sh
         'MaxCount': 1,
         'UserData': user_data,
         "IamInstanceProfile":{       
-            'Arn': 'arn:aws:iam::678601387840:instance-profile/EC2_robot_role',
+            'Arn': 'arn:aws:iam::825765386107:instance-profile/EC2_robot_role',
         },
         "BlockDeviceMappings":[
             {

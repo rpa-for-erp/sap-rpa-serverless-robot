@@ -62,7 +62,7 @@ def stop_robot(event, context):
 def get_robot_detail(event, context):
     print(f'Event: {json_prettier(event)}')
     robot_table = get_robot_table()
-
+    print(f'\nRobot Table: {robot_table}')
     query  = event['queryStringParameters']
     user_id = query['user_id']
     process_id = query['process_id']

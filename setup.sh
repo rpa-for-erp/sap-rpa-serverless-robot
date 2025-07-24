@@ -1,6 +1,6 @@
 #!/bin/bash
 
-bucket_name="edu-rpa-robot"
+bucket_name="rpa-robot-bktest"
 object_name="$ROBOT_FILE"
 
 # Dependency map
@@ -12,6 +12,7 @@ declare -A dependency_map=(
     ["EduRPA.Storage"]="edurpa-cloud"
     ["pytorch"]="pytorch torchvision cpuonly -c pytorch"
     ["PDF"]="rpaframework-pdf"
+    ["RPA.MOCK_SAP"]="rpa-sap-mock-bk"
 )
 
 install_dependencies_from_robot_file() {
