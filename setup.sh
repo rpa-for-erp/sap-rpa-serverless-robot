@@ -25,16 +25,21 @@ install_dependencies_from_robot_file() {
     
     for lib in $imports; do
         echo "Lib: $lib"
+        echo "DEBUG: Checking dependency_map[$lib] = ${dependency_map[$lib]}"
         if [[ -n ${dependency_map[$lib]} ]]; then
+            echo "DEBUG: Adding ${dependency_map[$lib]} to dependencies"
             dependencies+=(${dependency_map[$lib]})
         else
             parent_module=$(cut -d'.' -f1 <<< "$lib")
-
+            echo "DEBUG: Checking parent_module: $parent_module"
             if [[ -n ${dependency_map[$parent_module]} ]]; then
+                echo "DEBUG: Adding ${dependency_map[$parent_module]} from parent module"
                 dependencies+=(${dependency_map[$parent_module]})
             fi
         fi
     done
+    
+    echo "DEBUG: Final dependencies array: ${dependencies[@]}"
     
     dependencies=($(echo "${dependencies[@]}" | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' '))
 
