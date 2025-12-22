@@ -52,7 +52,7 @@ install_dependencies_from_robot_file() {
         fi
         echo "Packages Not Installed: ${package_not_installed[*]}"
 
-        install_command=("pip" "install" "-q" $dependency)
+        install_command=("pip" "install" $dependency)
         echo "${install_command[@]}"
         "${install_command[@]}"
 
@@ -69,7 +69,7 @@ install_dependencies_from_robot_file() {
     done
 
     if $is_edurpa_document; then
-        install_command=("pip" "install" "-q" "Pillow==9.5.0")
+        install_command=("pip" "install" "Pillow==9.5.0")
         echo "Running: ${install_command[@]}"
         "${install_command[@]}"
     fi
