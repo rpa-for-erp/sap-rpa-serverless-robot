@@ -13,6 +13,7 @@ declare -A dependency_map=(
     ["pytorch"]="pytorch torchvision cpuonly -c pytorch"
     ["PDF"]="rpaframework-pdf"
     ["RPA.MOCK_SAP"]="rpa-sap-mock-bk"
+    ["MoodleLibrary"]="rpa-moodle"
 )
 
 install_dependencies_from_robot_file() {
