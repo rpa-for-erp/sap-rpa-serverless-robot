@@ -81,7 +81,7 @@ source /etc/profile.d/conda.sh
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 
                                                            
-conda create -y -n robotenv python=3.9
+conda create -y -n robotenv python=3.10
 sudo chmod -R 777 /var/lib/cloud/scripts/per-boot
 touch /var/log/robot.log
 aws s3 cp s3://rpa-robot-bktest/utils/get-credential .
